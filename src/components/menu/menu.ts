@@ -43,6 +43,24 @@ export default class SlMenu extends ShoelaceElement {
 
     this.emit('sl-select', { detail: { item } });
   }
+  
+/*
+  private static getParentMenuItem(node: Node | null): HTMLElement | null {
+    if (node === null) {
+      return null;
+    }
+    if (node instanceof HTMLElement) {
+      const elt = node as HTMLElement
+      if (elt.tagName.toLowerCase() === "sl-menu-item" || (elt.getAttribute("role") ?? "").startsWith("menuitem")) {
+        return elt;
+      }
+    } 
+    if (node.parentNode === null) {
+      return null;
+    }
+    return SlMenu.getParentMenuItem(node.parentNode); 
+  }
+*/
 
   private handleKeyDown(event: KeyboardEvent) {
     // Make a selection when pressing enter
@@ -55,18 +73,35 @@ export default class SlMenu extends ShoelaceElement {
     }
 
     // Prevent scrolling when space is pressed
-    if (event.key === ' ') {
+    else if (event.key === ' ') {
       event.preventDefault();
     }
 
+/*
+    else if (event.key === 'ArrowLeft') {
+      if (this.getAttribute("slot") === "submenu") {
+        console.log("On a submenu.  menu.handleKeyDown ArrowLeft");
+        event.preventDefault();
+        event.stopPropagation();
+        const parent = SlMenu.getParentMenuItem(this.parentNode);
+        if (parent) {
+          parent.focus();
+        } else {
+          this.blur();
+        }
+      }
+    }
+*/
+
     // Move the selection when pressing down or up
-    if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+    else if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
       const items = this.getAllItems();
       const activeItem = this.getCurrentItem();
       let index = activeItem ? items.indexOf(activeItem) : 0;
 
       if (items.length > 0) {
         event.preventDefault();
+        event.stopPropagation();
 
         if (event.key === 'ArrowDown') {
           index++;
@@ -85,8 +120,12 @@ export default class SlMenu extends ShoelaceElement {
           index = 0;
         }
 
+        console.log(`menu.handleKeyDown - setting index to: ${index}`);
+
         this.setCurrentItem(items[index]);
         items[index].focus();
+        console.log("menu.handleKeyDown document.activeElement:")
+        console.log(document.activeElement);
       }
     }
   }
@@ -130,7 +169,20 @@ export default class SlMenu extends ShoelaceElement {
    * The menu item may or may not have focus, but for keyboard interaction purposes it's considered the "active" item.
    */
   getCurrentItem() {
-    return this.getAllItems().find(i => i.getAttribute('tabindex') === '0');
+    const items = this.getAllItems();
+    const focusedElt = this.querySelector(":focus");
+    if (!focusedElt) {
+      return items.find(i => i.getAttribute('tabindex') === '0');
+    }
+    let tabIndexedItem: SlMenuItem | null = null;
+    for (var item of items) {
+      if (item === focusedElt) {
+        return item;
+      } else if (tabIndexedItem === null && item.getAttribute('tabindex') === '0') {
+        tabIndexedItem = item;
+      }
+    }
+    return tabIndexedItem ? tabIndexedItem : items[0];
   }
 
   /**

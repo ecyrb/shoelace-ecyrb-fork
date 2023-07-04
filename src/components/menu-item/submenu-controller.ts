@@ -8,13 +8,71 @@ import SlMenuItem from './menu-item.js';
 import SlPopup from '../popup/popup.js';
 import type { ReactiveController, ReactiveControllerHost } from 'lit';
 
+// https://www.abeautifulsite.net/posts/finding-the-active-element-in-a-shadow-root/
+// @ts-ignore
+function getActiveElement(root: Document | ShadowRoot = document): Element | null {
+  if (root === document) {
+    console.log("getActiveElement(document)...");
+  } else {
+    if (root instanceof Element) {
+      console.log(`getActiveElement(${root.tagName})...`);
+    } else {
+      console.log(root);
+    }
+  }
+  const activeEl = root.activeElement;
+
+  if (!activeEl) {
+    return null;
+  }
+
+  if (activeEl.shadowRoot) {
+    const shadowActiveEl = getActiveElement(activeEl.shadowRoot);
+    return (shadowActiveEl) ? shadowActiveEl : activeEl;
+  } else {
+    return activeEl;
+  }
+}
+
+/*
+function getActiveElementUpwards(node : Node): Node | null {
+  console.log("getActiveElementUpwards() {");
+  let retValue: Element
+  if (node instanceof Element) {
+    retValue = 4;
+  }
+  retValue = 4;  
+  console.log(retValue);
+  return retValue;
+}
+*/
+
+/*
+function getParentMenuItem(node: Node | null): HTMLElement | null {
+  if (node === null) {
+    return null;
+  }
+  if (node instanceof HTMLElement) {
+    const elt = node as HTMLElement
+    if (elt.tagName.toLowerCase() === "sl-menu-item" || (elt.getAttribute("role") ?? "").startsWith("menuitem")) {
+      return elt;
+    }
+  } 
+  if (node.parentNode === null) {
+    return null;
+  }
+  return getParentMenuItem(node.parentNode); 
+}
+*/
+
+
 /** A reactive controller to manage the registration of event listeners for submenus. */
 export class SubmenuController implements ReactiveController {
   private host: ReactiveControllerHost & SlMenuItem;
   private popupRef: Ref<SlPopup> = createRef();
 
   private mouseOutTimer: number = -1;
-  private isActive: boolean = false;
+  private isConnected: boolean = false;
 
   private readonly hasSlotController: HasSlotController;
   private readonly localize: LocalizeController;
@@ -48,20 +106,25 @@ export class SubmenuController implements ReactiveController {
   }
 
   private addListeners() {
-    if (!this.isActive) {
+    if (!this.isConnected) {
       this.host.addEventListener('mouseover', this.handleMouseOver);
       this.host.addEventListener('mouseout', this.handleMouseOut);
       this.host.addEventListener('keydown', (event) => { this.handleKeyDown(event) });
-      this.isActive = true;
+      //document.addEventListener('keydown', this.handleDocumentKeyDown);
+      document.addEventListener('mousedown', this.handleDocumentMouseDown);
+
+      this.isConnected = true;
     }
   }
 
   private removeListeners() {
-    if (this.isActive) {
+    if (this.isConnected) {
       this.host.removeEventListener('mouseover', this.handleMouseOver);
       this.host.removeEventListener('mouseout', this.handleMouseOut);
       this.host.removeEventListener('keydown', this.handleKeyDown);
-      this.isActive = false;
+      document.removeEventListener('mousedown', this.handleDocumentMouseDown);
+
+      this.isConnected = false;
     }
   }
 
@@ -73,66 +136,105 @@ export class SubmenuController implements ReactiveController {
   };
 
   private handleMouseOut = () => {
-    if (this.popupRef.value && this.popupRef.value.active) {
+    console.log("submenuController.handleMouseOut...");
+    const submenuHasFocus: boolean = this.host.querySelector(":focus") ? true : false;
+
+    // TODO Parameterize timeout value
+    if (this.popupRef.value && this.popupRef.value.active && !submenuHasFocus) {
       this.mouseOutTimer = window.setTimeout(() => {
         if (this.popupRef.value && this.popupRef.value.active) {
           this.popupRef.value.active = false;
-          //this.isMouseOver = false;
         }
-      }, 100);
+      }, 200);
     }
+    console.log("End submenuController.handleMouseOut.");
   };
   
-  private isMenuItem(item: HTMLElement) {
-    return (
-      item.tagName.toLowerCase() === 'sl-menu-item' ||
-      ['menuitem', 'menuitemcheckbox', 'menuitemradio'].includes(item.getAttribute('role') ?? '')
-    );
-  }
-
-  /** @internal Gets all slotted menu items, ignoring dividers, headers, and other elements. */
-  getAllItems() {
-    const rr = this.host.renderRoot;
-    const slotQS : HTMLSlotElement = rr.querySelector("slot[name='submenu']") as HTMLSlotElement;
-    console.log(slotQS);
-    const aEs = slotQS.assignedElements({ flatten: true });
-    console.log(aEs[0]);
-    const menuItems = aEs.filter((el: HTMLElement) => {
-      if (el.inert || !this.isMenuItem(el)) {
-        return false;
-      }
-      return true;
-    }) as SlMenuItem[];
-    return [...menuItems];
-  }  
-
-/*
-    return [...this.host.renderRoot.querySelector("slot[name='submenu']").assignedElements({ flatten: true }).filter((el: HTMLElement) => {
-      if (el.inert || !this.isMenuItem(el)) {
-        return false;
-      }
-      return true;
-    }) as SlMenuItem[];
-  }
-  */
-
+  /** Focus on the first menu-item of a submenu. */
   private handleKeyDown(event: KeyboardEvent) {
     console.log(`submenuController.handleKeyDown: ${event.key}`);
-    switch(event.key) {
-      case "ArrowRight":
-        console.log("ArrowRight detected.");
-        //let items = this.getAllItems();
-        // find *a* menu-item
-        // let item = this.host.renderRoot.querySelector("sl-menu-item, [role='menuitem'], [role='menuitemcheckbox'], [role='menuitemradio']")
-        //let item = this.host.renderRoot.querySelector("sl-menu-item");
-        let item : HTMLSlotElement = this.host.renderRoot.querySelector("slot[name='submenu']") as HTMLSlotElement;
-        console.log(item);
-        console.log(item!.assignedElements()[0]);
-        console.log(item!.assignedElements()[0].querySelector("sl-menu-item"));
-        item!.assignedElements()[0].querySelector("sl-menu-item")!.focus();
+    switch (event.key) {
+      case 'Escape':
+      case 'Tab':
+        console.log("Hiding....");
+        if (this.popupRef.value) {
+          this.popupRef.value.active = false;
+        }
         break;
+      case 'ArrowLeft':
+        // Either we're focused on the host element or a child.
+        console.log("submenu-controller: ArrowLeft");
+        const focusedElt = this.host.querySelector(":focus");
+        console.log("focused element");
+        console.log(focusedElt);
+        if (focusedElt !== null && focusedElt !== this.host) {
+          event.preventDefault();
+          event.stopPropagation();
+          this.host.focus();
+          if (this.popupRef.value) {
+            this.popupRef.value.active = false;
+          }
+        }
+        break;
+      case 'ArrowRight':
+      case 'Enter':
+      case ' ': 
+
+        const submenuSlot: HTMLSlotElement = this.host.renderRoot.querySelector("slot[name='submenu']") as HTMLSlotElement;
+
+        if (!submenuSlot) {
+          console.error("submenu-controller onKeyDown: No slot!");
+          return;
+        }
+
+        // Slot
+        console.log(submenuSlot);
+
+        // Menus
+        let firstMenuItem: HTMLElement | null = null;
+        for (var elt of submenuSlot.assignedElements()) {
+          console.log(elt);
+          firstMenuItem = elt.querySelector("sl-menu-item, [role^='menuitem']");
+          if (firstMenuItem) {
+            console.log(`Found a menu-item: ${firstMenuItem}`);
+            break;
+          }
+        }
+
+        if (!firstMenuItem) {
+          console.error("Could not find a menu-item.");
+          return;
+        }
+
+        if (this.popupRef.value) { 
+          event.preventDefault();
+          event.stopPropagation();
+          if(this.popupRef.value.active) {
+            firstMenuItem.focus();
+          } else { 
+            this.popupRef.value.active = true;
+            // Require menu-item to be visible to set focus.
+            this.host.updateComplete.then(() => {
+              firstMenuItem!.focus();
+            });
+            this.host.requestUpdate(); 
+          }
+        }
+        break;
+      default:
+        break;  
     }
   } 
+  
+  private handleDocumentMouseDown = (event: MouseEvent) => {
+    // Close when clicking outside of the containing element
+    const path = event.composedPath();
+    if (this.host && !path.includes(this.host)) {
+      if (this.popupRef.value) {
+        this.popupRef.value.active = false;
+      }
+    }
+  };
   
   show() {
    
@@ -145,7 +247,7 @@ export class SubmenuController implements ReactiveController {
   renderSubmenu() {
     // Always render the slot. Conditionally render the outer sl-popup.
 
-    if (!this.isActive) {
+    if (!this.isConnected) {
       return html` <slot name="submenu" hidden></slot> `;
     }
 
