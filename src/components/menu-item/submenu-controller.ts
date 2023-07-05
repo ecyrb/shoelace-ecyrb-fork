@@ -8,34 +8,6 @@ import SlMenuItem from './menu-item.js';
 import SlPopup from '../popup/popup.js';
 import type { ReactiveController, ReactiveControllerHost } from 'lit';
 
-// https://www.abeautifulsite.net/posts/finding-the-active-element-in-a-shadow-root/
-// @ts-ignore
-/*
-function getActiveElement(root: Document | ShadowRoot = document): Element | null {
-  if (root === document) {
-    console.log("getActiveElement(document)...");
-  } else {
-    if (root instanceof Element) {
-      console.log(`getActiveElement(${root.tagName})...`);
-    } else {
-      console.log(root);
-    }
-  }
-  const activeEl = root.activeElement;
-
-  if (!activeEl) {
-    return null;
-  }
-
-  if (activeEl.shadowRoot) {
-    const shadowActiveEl = getActiveElement(activeEl.shadowRoot);
-    return (shadowActiveEl) ? shadowActiveEl : activeEl;
-  } else {
-    return activeEl;
-  }
-}
-*/
-
 /** A reactive controller to manage the registration of event listeners for submenus. */
 export class SubmenuController implements ReactiveController {
   private host: ReactiveControllerHost & SlMenuItem;
@@ -43,6 +15,7 @@ export class SubmenuController implements ReactiveController {
   
   private mouseOutTimer: number = -1;
   private isConnected: boolean = false;
+  private skidding: number = 0;
 
   private readonly hasSlotController: HasSlotController;
   private readonly localize: LocalizeController;
@@ -70,6 +43,7 @@ export class SubmenuController implements ReactiveController {
   hostUpdated() {
     if (this.hasSlotController.test('submenu') && !this.host.disabled) {
       this.addListeners();
+      this.updateSkidding();
     } else {
       this.removeListeners();
     }
@@ -224,17 +198,20 @@ export class SubmenuController implements ReactiveController {
     this.setSubmenuState(false);
   }
   
-  private calcSkidding(): number {
-    // TODO account for margin-top and non-pixel units
-    // Get the parent's padding and TODO margin
+  /** Calculate the space the top of a menu takes-up, for aligning the popup menu-item with the activating element. */
+  private updateSkidding(): void {
+    const attrs: string[] = ["padding-top", "border-top-width", "margin-top"];
     const styleMap: StylePropertyMapReadOnly = this.host.parentElement!.computedStyleMap();
-
-    const paddingStyle: CSSStyleValue = styleMap.get("padding-top") ?? new CSSUnitValue(8, "px");
-    console.log(`paddingStyle = ${paddingStyle}`);
-    const padding = (paddingStyle instanceof CSSUnitValue) ? paddingStyle as CSSUnitValue : new CSSUnitValue(8, "px");
-    console.log(`padding = ${padding}`);
-
-    return -padding.value;
+    
+    console.log("calcSkdding:");
+    const skidding = attrs.reduce((accum, attr) => {
+      const styleValue: CSSStyleValue = styleMap.get(attr) ?? new CSSUnitValue(0, "px");
+      const unitValue = (styleValue instanceof CSSUnitValue) ? styleValue as CSSUnitValue : new CSSUnitValue(0, "px"); 
+      const pxValue = unitValue.to("px");
+      return accum - pxValue.value;
+    }, 0);
+    
+    this.skidding = skidding;
   }
   
   isExpanded(): boolean {
@@ -249,12 +226,6 @@ export class SubmenuController implements ReactiveController {
       return html` <slot name="submenu" hidden></slot> `;
     }
 
-/*
-    const skidding = -(getComputedStyle(document.documentElement).getPropertyValue("--sl-panel-border-width") +
-                       getComputedStyle(document.documentElement).getPropertyValue("--sl-spacing-x-small"));
-                     */ 
-    console.log(`skidding = ${this.calcSkidding()}`);
-
     const isLtr = this.localize.dir() === 'ltr';
     return html`
       <style>
@@ -268,7 +239,7 @@ export class SubmenuController implements ReactiveController {
         anchor="anchor"
         flip
         flip-fallback-strategy="best-fit"
-        skidding="${this.calcSkidding()}"
+        skidding="${this.skidding}"
         strategy="fixed"
       >
         <slot name="submenu"></slot>
