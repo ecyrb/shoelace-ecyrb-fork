@@ -77,22 +77,6 @@ export default class SlMenu extends ShoelaceElement {
       event.preventDefault();
     }
 
-/*
-    else if (event.key === 'ArrowLeft') {
-      if (this.getAttribute("slot") === "submenu") {
-        console.log("On a submenu.  menu.handleKeyDown ArrowLeft");
-        event.preventDefault();
-        event.stopPropagation();
-        const parent = SlMenu.getParentMenuItem(this.parentNode);
-        if (parent) {
-          parent.focus();
-        } else {
-          this.blur();
-        }
-      }
-    }
-*/
-
     // Move the selection when pressing down or up
     else if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
       const items = this.getAllItems();
@@ -120,12 +104,8 @@ export default class SlMenu extends ShoelaceElement {
           index = 0;
         }
 
-        console.log(`menu.handleKeyDown - setting index to: ${index}`);
-
         this.setCurrentItem(items[index]);
         items[index].focus();
-        console.log("menu.handleKeyDown document.activeElement:")
-        console.log(document.activeElement);
       }
     }
   }

@@ -8,7 +8,6 @@ import { html } from 'lit';
 import { LocalizeController } from '../../utilities/localize.js';
 import { watch } from '../../internal/watch.js';
 import ShoelaceElement from '../../internal/shoelace-element.js';
-//import SlMenu from '../menu/menu.js';
 import styles from './menu-item.styles.js';
 import type { CSSResultGroup } from 'lit';
 
@@ -56,28 +55,22 @@ export default class SlMenuItem extends ShoelaceElement {
 
   private readonly localize = new LocalizeController(this);
   private readonly hasSlotController = new HasSlotController(this, 'submenu');
-  private submenuController: SubmenuController;
+  private submenuController: SubmenuController = new SubmenuController(this, this.hasSlotController, this.localize);
 
   constructor() {
     super();
-    this.submenuController = new SubmenuController(this, this.hasSlotController, this.localize);
   }
   
   connectedCallback() {
     super.connectedCallback();
     this.addEventListener('click', this.handleHostClick);
-    this.addEventListener('keydown', this.handleKeyDown);
     this.addEventListener('mouseover', this.handleMouseOver);
-    this.addEventListener('focusout', this.handleFocusOut);
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
     this.removeEventListener('click', this.handleHostClick);
-    this.removeEventListener('keydown', this.handleKeyDown);
     this.removeEventListener('mouseover', this.handleMouseOver);
-    this.removeEventListener('focusout', this.handleFocusOut);
-
   }
 
   private handleDefaultSlotChange() {
@@ -104,52 +97,13 @@ export default class SlMenuItem extends ShoelaceElement {
     }
   };
   
-  private handleKeyDown(event: KeyboardEvent) {
-    console.log(`<menu-item ${this.id}> handleKeyDown: ${event.key}`);
-  }
-  
   private handleMouseOver = {
     handleEvent: (event: MouseEvent) => {
-      console.log(`${this.id} - mouseover`);
-      //console.log(event.target);
-      
-      //const parentMenu: SlMenu = this.parentElement as SlMenu;
-      //console.log(this);
-      //parentMenu.setCurrentItem(this);
-      console.log(`${this.id}.handleMouseOver`);
-      console.log(`  Setting focus.`);
-
       this.focus();
       event.stopPropagation();
     }
   }
   
-
-  private handleFocusOut = {
-    handleEvent: (event: FocusEvent) => {
-      console.log(`${this.id} - focusout`);
-      console.log(event.target);
-    }
-  }      
- 
-/*
-    // Make a selection when pressing enter
-    if (event.key === 'Enter') {
-      event.preventDefault();
-
-      // Simulate a click to support @click handlers on menu items that also work with the keyboard
-      // item?.click();
-    }
-    
-    // Prevent scrolling when space is pressed
-    if (event.key === ' ') {
-      
-      event.preventDefault();
-    }
-  }
-*/
-
-
   @watch('checked')
   handleCheckedChange() {
     // For proper accessibility, users have to use type="checkbox" to use the checked attribute
@@ -174,7 +128,6 @@ export default class SlMenuItem extends ShoelaceElement {
 
   @watch('type')
   handleTypeChange() {
-    console.log(`handleTypeChange() ${this.getTextLabel()} : submenu? ${this.isSubmenu()}`);
     if (this.type === 'checkbox') {
       this.setAttribute('role', 'menuitemcheckbox');
       this.setAttribute('aria-checked', this.checked ? 'true' : 'false');
