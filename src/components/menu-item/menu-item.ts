@@ -60,7 +60,7 @@ export default class SlMenuItem extends ShoelaceElement {
   constructor() {
     super();
   }
-  
+
   connectedCallback() {
     super.connectedCallback();
     this.addEventListener('click', this.handleHostClick);
@@ -96,14 +96,14 @@ export default class SlMenuItem extends ShoelaceElement {
       event.stopImmediatePropagation();
     }
   };
-  
+
   private handleMouseOver = {
     handleEvent: (event: MouseEvent) => {
       this.focus();
       event.stopPropagation();
     }
-  }
-  
+  };
+
   @watch('checked')
   handleCheckedChange() {
     // For proper accessibility, users have to use type="checkbox" to use the checked attribute
@@ -144,9 +144,9 @@ export default class SlMenuItem extends ShoelaceElement {
   getTextLabel() {
     return getTextContent(this.defaultSlot);
   }
-  
+
   isSubmenu() {
-    return this.hasSlotController.test("submenu");
+    return this.hasSlotController.test('submenu');
   }
 
   render() {
@@ -163,7 +163,7 @@ export default class SlMenuItem extends ShoelaceElement {
           'menu-item--disabled': this.disabled,
           'menu-item--has-submenu': isSubmenu
         })}
-        role="${isSubmenu ? "menu" : (this.checked ? "menuitemcheckbox" : "menuitem")}"
+        role="${isSubmenu ? 'menu' : this.checked ? 'menuitemcheckbox' : 'menuitem'}"
         ?aria-haspopup="${isSubmenu}"
         ?aria-expanded="${this.submenuController.isExpanded() ? true : false}"
       >

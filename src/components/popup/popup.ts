@@ -1,4 +1,14 @@
-import { arrow, autoPlacement, autoUpdate, computePosition, flip, offset, platform, shift, size } from '@floating-ui/dom';
+import {
+  arrow,
+  autoPlacement,
+  autoUpdate,
+  computePosition,
+  flip,
+  offset,
+  platform,
+  shift,
+  size
+} from '@floating-ui/dom';
 import { classMap } from 'lit/directives/class-map.js';
 import { customElement, property, query } from 'lit/decorators.js';
 import { html } from 'lit';
@@ -310,7 +320,7 @@ export default class SlPopup extends ShoelaceElement {
       this.popup.style.width = '';
       this.popup.style.height = '';
     }
-    
+
     // Then we check for autoPlacement
     if (this.autoPlacement) {
       middleware.push(autoPlacement());

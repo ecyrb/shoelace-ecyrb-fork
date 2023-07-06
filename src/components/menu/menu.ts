@@ -43,8 +43,8 @@ export default class SlMenu extends ShoelaceElement {
 
     this.emit('sl-select', { detail: { item } });
   }
-  
-/*
+
+  /*
   private static getParentMenuItem(node: Node | null): HTMLElement | null {
     if (node === null) {
       return null;
@@ -150,7 +150,7 @@ export default class SlMenu extends ShoelaceElement {
    */
   getCurrentItem() {
     const items = this.getAllItems();
-    const focusedElt = this.querySelector(":focus");
+    const focusedElt = this.querySelector(':focus');
     if (!focusedElt) {
       return items.find(i => i.getAttribute('tabindex') === '0');
     }

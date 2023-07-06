@@ -12,7 +12,7 @@ import type { ReactiveController, ReactiveControllerHost } from 'lit';
 export class SubmenuController implements ReactiveController {
   private host: ReactiveControllerHost & SlMenuItem;
   private popupRef: Ref<SlPopup> = createRef();
-  
+
   private isConnected: boolean = false;
   private skidding: number = 0;
 
@@ -67,7 +67,7 @@ export class SubmenuController implements ReactiveController {
       this.isConnected = false;
     }
   }
-  
+
   private handleMouseOver = () => {
     if (this.hasSlotController.test('submenu')) {
       this.enableSubmenu();
@@ -93,16 +93,18 @@ export class SubmenuController implements ReactiveController {
           break;
         case 'ArrowRight':
         case 'Enter':
-        case ' ': 
+        case ' ':
           // Pass focus to the first menu-item in the submenu.
-          const submenuSlot: HTMLSlotElement = this.host.renderRoot.querySelector("slot[name='submenu']") as HTMLSlotElement;
+          const submenuSlot: HTMLSlotElement = this.host.renderRoot.querySelector(
+            "slot[name='submenu']"
+          ) as HTMLSlotElement;
 
           // Missing slot
           if (!submenuSlot) {
-            console.error("Cannot activate a submenu if no corresponding menuitem can be found.", this);
+            console.error('Cannot activate a submenu if no corresponding menuitem can be found.', this);
             return;
           }
-  
+
           // Menus
           let firstMenuItem: HTMLElement | null = null;
           for (var elt of submenuSlot.assignedElements()) {
@@ -111,48 +113,53 @@ export class SubmenuController implements ReactiveController {
               break;
             }
           }
-  
+
           if (!firstMenuItem) {
             return;
           }
-  
-          if (this.popupRef.value) { 
+
+          if (this.popupRef.value) {
             event.preventDefault();
             event.stopPropagation();
-            if(this.popupRef.value.active) {
+            if (this.popupRef.value.active) {
               firstMenuItem.focus();
-            } else { 
+            } else {
               this.enableSubmenu();
               // Require menu-item to be visible to set focus.
               this.host.updateComplete.then(() => {
                 firstMenuItem!.focus();
               });
-              this.host.requestUpdate(); 
+              this.host.requestUpdate();
             }
           }
           break;
         default:
-          break;  
+          break;
       }
     }
-  } 
-  
-  private handleClick = { handleEvent: (event: MouseEvent) => {
-    // Clicking on the item which heads the menu does nothing.
-    if (event.target === this.host) {
-      event.preventDefault();
-      event.stopPropagation();
+  };
+
+  private handleClick = {
+    handleEvent: (event: MouseEvent) => {
+      // Clicking on the item which heads the menu does nothing.
+      if (event.target === this.host) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
     }
-  } }  
-  
+  };
+
   /** Close this submenu on focus outside of the parent or any descendents. */
   private handleFocusOut = {
     handleEvent: (event: FocusEvent) => {
-      if (!event.relatedTarget || (event.relatedTarget instanceof Element && !this.host.contains(event.relatedTarget))) {
+      if (
+        !event.relatedTarget ||
+        (event.relatedTarget instanceof Element && !this.host.contains(event.relatedTarget))
+      ) {
         this.disableSubmenu();
       }
     }
-  }
+  };
 
   private setSubmenuState(state: boolean) {
     if (this.popupRef.value) {
@@ -170,26 +177,25 @@ export class SubmenuController implements ReactiveController {
   private disableSubmenu() {
     this.setSubmenuState(false);
   }
-  
+
   /** Calculate the space the top of a menu takes-up, for aligning the popup menu-item with the activating element. */
   private updateSkidding(): void {
-    const attrs: string[] = ["padding-top", "border-top-width", "margin-top"];
+    const attrs: string[] = ['padding-top', 'border-top-width', 'margin-top'];
     const styleMap: StylePropertyMapReadOnly = this.host.parentElement!.computedStyleMap();
-    
+
     const skidding = attrs.reduce((accum, attr) => {
-      const styleValue: CSSStyleValue = styleMap.get(attr) ?? new CSSUnitValue(0, "px");
-      const unitValue = (styleValue instanceof CSSUnitValue) ? styleValue as CSSUnitValue : new CSSUnitValue(0, "px"); 
-      const pxValue = unitValue.to("px");
+      const styleValue: CSSStyleValue = styleMap.get(attr) ?? new CSSUnitValue(0, 'px');
+      const unitValue = styleValue instanceof CSSUnitValue ? (styleValue as CSSUnitValue) : new CSSUnitValue(0, 'px');
+      const pxValue = unitValue.to('px');
       return accum - pxValue.value;
     }, 0);
-    
+
     this.skidding = skidding;
   }
-  
+
   isExpanded(): boolean {
     return this.popupRef.value ? this.popupRef.value.active : false;
   }
-
 
   renderSubmenu() {
     // Always render the slot. Conditionally render the outer sl-popup.
