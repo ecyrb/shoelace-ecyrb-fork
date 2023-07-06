@@ -180,8 +180,12 @@ export class SubmenuController implements ReactiveController {
 
   /** Calculate the space the top of a menu takes-up, for aligning the popup menu-item with the activating element. */
   private updateSkidding(): void {
-    const attrs: string[] = ['padding-top', 'border-top-width', 'margin-top'];
+    // .computedStyleMap() not always available.
+    if (!this.host.parentElement || !this.host.parentElement.computedStyleMap) {
+      return;
+    }
     const styleMap: StylePropertyMapReadOnly = this.host.parentElement!.computedStyleMap();
+    const attrs: string[] = ['padding-top', 'border-top-width', 'margin-top'];
 
     const skidding = attrs.reduce((accum, attr) => {
       const styleValue: CSSStyleValue = styleMap.get(attr) ?? new CSSUnitValue(0, 'px');

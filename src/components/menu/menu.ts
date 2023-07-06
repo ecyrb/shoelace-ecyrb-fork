@@ -44,24 +44,6 @@ export default class SlMenu extends ShoelaceElement {
     this.emit('sl-select', { detail: { item } });
   }
 
-  /*
-  private static getParentMenuItem(node: Node | null): HTMLElement | null {
-    if (node === null) {
-      return null;
-    }
-    if (node instanceof HTMLElement) {
-      const elt = node as HTMLElement
-      if (elt.tagName.toLowerCase() === "sl-menu-item" || (elt.getAttribute("role") ?? "").startsWith("menuitem")) {
-        return elt;
-      }
-    } 
-    if (node.parentNode === null) {
-      return null;
-    }
-    return SlMenu.getParentMenuItem(node.parentNode); 
-  }
-*/
-
   private handleKeyDown(event: KeyboardEvent) {
     // Make a selection when pressing enter
     if (event.key === 'Enter') {

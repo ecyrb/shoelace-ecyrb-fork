@@ -163,7 +163,6 @@ export default class SlMenuItem extends ShoelaceElement {
           'menu-item--disabled': this.disabled,
           'menu-item--has-submenu': isSubmenu
         })}
-        role="${isSubmenu ? 'menu' : this.checked ? 'menuitemcheckbox' : 'menuitem'}"
         ?aria-haspopup="${isSubmenu}"
         ?aria-expanded="${this.submenuController.isExpanded() ? true : false}"
       >
