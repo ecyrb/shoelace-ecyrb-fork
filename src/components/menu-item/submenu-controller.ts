@@ -8,12 +8,27 @@ import SlMenuItem from './menu-item.js';
 import SlPopup from '../popup/popup.js';
 import type { ReactiveController, ReactiveControllerHost } from 'lit';
 
+// @ts-ignore
+function getActiveElement(root: Document | ShadowRoot = document): Element | null {
+  const activeEl = root.activeElement;
+
+  if (!activeEl) {
+    return null;
+  }
+
+  if (activeEl.shadowRoot) {
+    const shadowActiveEl = getActiveElement(activeEl.shadowRoot);
+    return (shadowActiveEl) ? shadowActiveEl : activeEl;
+  } else {
+    return activeEl;
+  }
+}
+
 /** A reactive controller to manage the registration of event listeners for submenus. */
 export class SubmenuController implements ReactiveController {
   private host: ReactiveControllerHost & SlMenuItem;
   private popupRef: Ref<SlPopup> = createRef();
   
-  private mouseOutTimer: number = -1;
   private isConnected: boolean = false;
   private skidding: number = 0;
 
@@ -52,9 +67,10 @@ export class SubmenuController implements ReactiveController {
   private addListeners() {
     if (!this.isConnected) {
       this.host.addEventListener('mouseover', this.handleMouseOver);
-      this.host.addEventListener('mouseout', this.handleMouseOut);
+      //this.host.addEventListener('mouseout', this.handleMouseOut);
       this.host.addEventListener('keydown', this.handleKeyDown);
       this.host.addEventListener('click', this.handleClick);
+      this.host.addEventListener('focusout', this.handleFocusOut);
       document.addEventListener('mousedown', this.handleDocumentMouseDown);
 
       this.isConnected = true;
@@ -63,23 +79,36 @@ export class SubmenuController implements ReactiveController {
 
   private removeListeners() {
     if (this.isConnected) {
+      if (this.popupRef.value) {
+        this.popupRef.value.removeEventListener('mouseover', this.submenuMouseover);
+      }
       this.host.removeEventListener('mouseover', this.handleMouseOver);
-      this.host.removeEventListener('mouseout', this.handleMouseOut);
+      //this.host.removeEventListener('mouseout', this.handleMouseOut);
       this.host.removeEventListener('keydown', this.handleKeyDown);
       this.host.removeEventListener('click', this.handleClick);
+      this.host.removeEventListener('focusout', this.handleFocusOut);
       document.removeEventListener('mousedown', this.handleDocumentMouseDown);
 
       this.isConnected = false;
     }
   }
+  
+
+  private submenuMouseover = (event: MouseEvent) => {
+    console.log(`${this.host.id}.popup - mouseover`);
+    event.stopPropagation();
+  }
 
   private handleMouseOver = () => {
-    clearTimeout(this.mouseOutTimer);
+    //clearTimeout(this.mouseOutTimer);
+    console.log(`${this.host.id} - mouseover`);
     if (this.hasSlotController.test('submenu')) {
+      console.log(`  ${this.host.id} - has submenu`);
       this.enableSubmenu();
     }
   };
 
+  /*
   private handleMouseOut = () => {
     console.log("submenuController.handleMouseOut...");
     const submenuHasFocus: boolean = this.host.querySelector(":focus") ? true : false;
@@ -92,6 +121,7 @@ export class SubmenuController implements ReactiveController {
     }
     console.log("End submenuController.handleMouseOut.");
   };
+  */
   
   /** Focus on the first menu-item of a submenu. */
   private handleKeyDown = { handleEvent: (event: KeyboardEvent) => {
@@ -173,6 +203,27 @@ export class SubmenuController implements ReactiveController {
     }
   } }  
   
+  /** On blur check if focus is on something that would keep the menu open:
+   *    - this element, a sibling, descendent, or immediate parent
+   */
+  private handleFocusOut = {
+    handleEvent: (event: FocusEvent) => {
+      console.log("---HANDLE BLUR START--------------------------------");
+      console.log(`${this.host.id} handleBlur()`);
+      console.log(`  Element losing focus:`);
+      console.log(event.target);
+      console.log(`  Element gaining focus:`);
+      console.log(event.relatedTarget);
+      console.log(`  End of ${this.host.id} handleBlur()`);
+      
+      if (!event.relatedTarget || (event.relatedTarget instanceof Element && !this.host.contains(event.relatedTarget))) {
+        this.disableSubmenu();
+      }
+
+      console.log("---HANDLE BLUR END--------------------------------");
+    }
+  }
+
   private handleDocumentMouseDown = (event: MouseEvent) => {
     // Close when clicking outside of the containing element
     const path = event.composedPath();
@@ -191,6 +242,7 @@ export class SubmenuController implements ReactiveController {
   }
 
   private enableSubmenu() {
+    console.log(`${this.host.id} enableSubmenu`);
     this.setSubmenuState(true);
   }
 
@@ -203,7 +255,6 @@ export class SubmenuController implements ReactiveController {
     const attrs: string[] = ["padding-top", "border-top-width", "margin-top"];
     const styleMap: StylePropertyMapReadOnly = this.host.parentElement!.computedStyleMap();
     
-    console.log("calcSkdding:");
     const skidding = attrs.reduce((accum, attr) => {
       const styleValue: CSSStyleValue = styleMap.get(attr) ?? new CSSUnitValue(0, "px");
       const unitValue = (styleValue instanceof CSSUnitValue) ? styleValue as CSSUnitValue : new CSSUnitValue(0, "px"); 

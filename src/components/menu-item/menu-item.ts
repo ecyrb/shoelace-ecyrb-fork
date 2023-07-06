@@ -8,6 +8,7 @@ import { html } from 'lit';
 import { LocalizeController } from '../../utilities/localize.js';
 import { watch } from '../../internal/watch.js';
 import ShoelaceElement from '../../internal/shoelace-element.js';
+//import SlMenu from '../menu/menu.js';
 import styles from './menu-item.styles.js';
 import type { CSSResultGroup } from 'lit';
 
@@ -59,9 +60,24 @@ export default class SlMenuItem extends ShoelaceElement {
 
   constructor() {
     super();
+    this.submenuController = new SubmenuController(this, this.hasSlotController, this.localize);
+  }
+  
+  connectedCallback() {
+    super.connectedCallback();
     this.addEventListener('click', this.handleHostClick);
     this.addEventListener('keydown', this.handleKeyDown);
-    this.submenuController = new SubmenuController(this, this.hasSlotController, this.localize);
+    this.addEventListener('mouseover', this.handleMouseOver);
+    this.addEventListener('focusout', this.handleFocusOut);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.removeEventListener('click', this.handleHostClick);
+    this.removeEventListener('keydown', this.handleKeyDown);
+    this.removeEventListener('mouseover', this.handleMouseOver);
+    this.removeEventListener('focusout', this.handleFocusOut);
+
   }
 
   private handleDefaultSlotChange() {
@@ -92,6 +108,30 @@ export default class SlMenuItem extends ShoelaceElement {
     console.log(`<menu-item ${this.id}> handleKeyDown: ${event.key}`);
   }
   
+  private handleMouseOver = {
+    handleEvent: (event: MouseEvent) => {
+      console.log(`${this.id} - mouseover`);
+      //console.log(event.target);
+      
+      //const parentMenu: SlMenu = this.parentElement as SlMenu;
+      //console.log(this);
+      //parentMenu.setCurrentItem(this);
+      console.log(`${this.id}.handleMouseOver`);
+      console.log(`  Setting focus.`);
+
+      this.focus();
+      event.stopPropagation();
+    }
+  }
+  
+
+  private handleFocusOut = {
+    handleEvent: (event: FocusEvent) => {
+      console.log(`${this.id} - focusout`);
+      console.log(event.target);
+    }
+  }      
+ 
 /*
     // Make a selection when pressing enter
     if (event.key === 'Enter') {
@@ -134,11 +174,11 @@ export default class SlMenuItem extends ShoelaceElement {
 
   @watch('type')
   handleTypeChange() {
-    console.log(`handleTypeChange() ${this.getTextLabel()} : submenu? ${this.hasSlotController.test("submenu")}`);
+    console.log(`handleTypeChange() ${this.getTextLabel()} : submenu? ${this.isSubmenu()}`);
     if (this.type === 'checkbox') {
       this.setAttribute('role', 'menuitemcheckbox');
       this.setAttribute('aria-checked', this.checked ? 'true' : 'false');
-    } else if (this.hasSlotController.test('submenu')) {
+    } else if (this.isSubmenu()) {
       this.setAttribute('role', 'menu');
       this.removeAttribute('aria-checked');
     } else {
@@ -151,10 +191,14 @@ export default class SlMenuItem extends ShoelaceElement {
   getTextLabel() {
     return getTextContent(this.defaultSlot);
   }
+  
+  isSubmenu() {
+    return this.hasSlotController.test("submenu");
+  }
 
   render() {
     const isLtr = this.localize.dir() === 'ltr';
-    const isSubmenu = this.hasSlotController.test('submenu');
+    const isSubmenu = this.isSubmenu();
 
     return html`
       <div
